@@ -12,8 +12,24 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import sqlite3
 
 from time import time
+
+def acquire_lock():
+    try:
+        con = sqlite3.Connection("xlock.db", timeout=0)
+        curs = con.cursor()
+        curs.execute("BEGIN EXCLUSIVE")
+        return curs
+    except sqlite3.OperationalError:
+        del con
+        del curs
+        print("Waiting for lock on database")
+        con = sqlite3.Connection("xlock.db", timeout=9999)
+        curs = con.cursor()
+        curs.execute("BEGIN EXCLUSIVE")
+        return curs
 
 def support_xz():
     try:
@@ -1254,6 +1270,7 @@ def bootstrap(help_triggered):
 def main():
     """Entry point for the bootstrap process"""
     start_time = time()
+    lock = acquire_lock()
 
     # x.py help <cmd> ...
     if len(sys.argv) > 1 and sys.argv[1] == 'help':
