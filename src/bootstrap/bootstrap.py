@@ -12,24 +12,28 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import sqlite3
 
 from time import time
 
 def acquire_lock():
     try:
-        con = sqlite3.Connection("xlock.db", timeout=0)
-        curs = con.cursor()
-        curs.execute("BEGIN EXCLUSIVE")
-        return curs
-    except sqlite3.OperationalError:
-        del con
-        del curs
-        print("Waiting for lock on database")
-        con = sqlite3.Connection("xlock.db", timeout=9999)
-        curs = con.cursor()
-        curs.execute("BEGIN EXCLUSIVE")
-        return curs
+        import sqlite3
+        try:
+            con = sqlite3.Connection("xlock.db", timeout=0)
+            curs = con.cursor()
+            curs.execute("BEGIN EXCLUSIVE")
+            return curs
+        except sqlite3.OperationalError:
+            del con
+            del curs
+            print("Waiting for lock on database")
+            con = sqlite3.Connection("xlock.db", timeout=9999)
+            curs = con.cursor()
+            curs.execute("BEGIN EXCLUSIVE")
+            return curs
+    except ImportError:
+        print("sqlite3 not installed: skipping lock!")
+        return None
 
 def support_xz():
     try:
